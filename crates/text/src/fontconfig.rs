@@ -195,6 +195,11 @@ fn drain(reader: &mut impl Read, output: &mut Vec<u8>, cap: usize, deadline: Ins
 }
 
 #[cfg(test)]
+pub(super) fn test_command(command: Command) -> io::Result<Vec<u8>> {
+    query(command, LIMITS, true)
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use std::os::unix::ffi::OsStrExt;
@@ -287,9 +292,4 @@ mod tests {
             }
         }
     }
-}
-
-#[cfg(test)]
-pub(super) fn test_command(command: Command) -> io::Result<Vec<u8>> {
-    query(command, LIMITS, true)
 }

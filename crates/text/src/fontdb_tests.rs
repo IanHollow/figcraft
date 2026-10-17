@@ -256,7 +256,7 @@ fn the_opt_out_prevents_both_system_scan_entry_points() {
         scan_system_fonts();
         assert_eq!(SCANS.load(Ordering::Relaxed), 0);
         assert!(!system_fonts_scanned());
-        println!("{VERIFIED}");
+        println!("\n{VERIFIED}");
         return;
     }
     let module = module_path!().split_once("::").unwrap().1;
