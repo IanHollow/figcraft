@@ -15,6 +15,10 @@ Every subcommand takes `--no-system-fonts` (or set `FIGCRAFT_NO_SYSTEM_FONTS=1`,
 app honours too) to use only the built-in fonts, for renders that come out the same on every
 machine, e.g. in CI.
 
+On Linux and other Unix systems except macOS, user fonts are read from
+`$XDG_DATA_HOME/fonts`, or `$HOME/.local/share/fonts` when `XDG_DATA_HOME` is unset,
+empty or relative. The legacy `$HOME/.fonts` directory is also scanned.
+
 On Linux, FigCraft also asks `fc-list` for the font files selected by the current Fontconfig
 configuration, including custom font directories. Files from the usual system folders keep
 priority; configured files are appended in filename order. This discovers files, rather than
@@ -24,7 +28,7 @@ FigCraft keeps the usual-folder scan and discards the incomplete query. The syst
 skips both scans and the query. The deadline covers nonblocking query waits, not a hard return
 time: process creation, synchronous cleanup during uninterruptible kernel I/O, and later font-file
 reads can take longer. Cleanup stops the owned process group and reaps its child. The existing
-supported-format and 64 MiB per-file limits apply.
+supported-format and per-file indexing limits apply.
 
 The collaboration server is a binary of its own, `figcraft-server` (`cargo build --release -p
 figcraft-server`): it keeps files with share links and serves their live sessions, and its
@@ -59,9 +63,11 @@ page 1 "Screens": 380 nodes, 4 top-level
 - `<out>` has an image extension: one file with the given `--node`, or the whole page composited.
 - `--node` takes a layer id (`12` or `0:12`) or a layer name.
 - `--format fig` (or an `<out>` ending in `.fig`) writes the whole file as `.fig`, experimental:
-  written from public format notes and checked only by opening it again in FigCraft; other apps
-  may not open every file. What was left out (shared style links, variables, comments, Dev Mode
-  data…) is printed as `note:` lines.
+  written from public format notes, including variables with their modes and bindings and shared
+  styles with their layer links. Checked by opening it again in FigCraft and, on the example
+  documents and small test files, in other software; other apps may not open every file. What was
+  left out (comments, Dev Mode data, some bindings and settings…) is printed as `note:` lines;
+  `docs/file-format-parity.md` lists what was checked and what is unchecked.
 - The format comes from `--format`, else `<out>`'s extension, else png. `--scale` (default 1, max 64)
   applies to raster formats.
 - SVG/PDF exports with visible descendants more than 256 levels below an exported root fail with
@@ -156,7 +162,7 @@ size and SHA-256. The server's key comes from the address or, better, from the
 lists); it is never printed. The bundle is checked before it is sent and again by the server. See
 [plugins.md](plugins.md#plugin-directories).
 
-### `perf [--layers N[,N...]]`
+### `perf [--layers N[,N...]] [--instances N[,N...]]`
 
 Builds synthetic documents of each size (default `1000,10000` layers: screens with an auto layout
 header, a card group, button instances and a grid of shapes and text) and prints a Markdown table of
@@ -165,3 +171,11 @@ and hover, single-layer edits through the engine (fill, move, text in auto layou
 with all its instances), undo/redo, a drag preview frame, `normalize` after a one-node edit,
 `document.inspect` and select-all + move. Use a release build for meaningful numbers;
 `cargo xtask bench` runs it at 1k/10k/50k layers together with the UI frame benchmarks.
+
+`--layers` picks the document sizes (each value is clamped to 10 to 2,000,000 layers). `--instances`
+picks the component workloads (default `2000`): for each count the command builds a synthetic design
+system (about 300 components, variables and styles, nested four deep) with that many instances that
+carry overrides at every level, in one file and as a library in another. It then prints a second
+table with the build time and edits of a deep main component (icon colour, glyph size, an added
+layer) and of the 72 button mains, where all copies follow. Zeros are dropped and counts above
+100,000 are capped to 100,000; `--instances 0` skips this table.
